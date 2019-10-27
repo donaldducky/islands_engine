@@ -4,6 +4,7 @@ defmodule IslandsEngine.Game do
   alias IslandsEngine.{Board, Coordinate, Guesses, Island, Rules}
 
   @players [:player1, :player2]
+  @timeout 60 * 60 * 24 * 1000
 
   def via_tuple(name), do: {:via, Registry, {Registry.Game, name}}
 
@@ -30,7 +31,7 @@ defmodule IslandsEngine.Game do
   def init(name) do
     player1 = %{name: name, board: Board.new(), guesses: Guesses.new()}
     player2 = %{name: nil, board: Board.new(), guesses: Guesses.new()}
-    {:ok, %{player1: player1, player2: player2, rules: %Rules{}}}
+    {:ok, %{player1: player1, player2: player2, rules: %Rules{}}, @timeout}
   end
 
   def handle_call({:add_player, name}, _from, state_data) do
@@ -110,6 +111,10 @@ defmodule IslandsEngine.Game do
       {:error, :invalid_coordinate} ->
         {:reply, {:error, :invalid_coordinate}, state_data}
     end
+  end
+
+  def handle_info(:timeout, state_data) do
+    {:stop, {:shutdown, :timeout}, state_data}
   end
 
   defp update_player2_name(state_data, name) do
