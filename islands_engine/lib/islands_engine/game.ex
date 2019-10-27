@@ -35,7 +35,7 @@ defmodule IslandsEngine.Game do
     {:ok, %{}, {:continue, {:init_state, name}}}
   end
 
-  def handle_continue({:init_state, name}, state) do
+  def handle_continue({:init_state, name}, _state) do
     state_data =
       case :ets.lookup(:game_state, name) do
         [] ->

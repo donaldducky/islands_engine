@@ -3,6 +3,13 @@
   <p>A productive web framework that<br/>does not compromise speed or maintainability.</p>
 </section>
 
+<p>
+  <%= form_tag("/test") do
+    [tag(:input, type: "text", name: "name"),
+    tag(:input, type: "submit", value: "New Game")]
+  end %>
+</p>
+
 <section class="row">
   <article class="column">
     <h2>Resources</h2>
