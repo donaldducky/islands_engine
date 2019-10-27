@@ -18,6 +18,7 @@ defmodule IslandsEngine.GameSupervisor do
         {:error, :game_does_not_exist}
 
       pid ->
+        :ets.delete(:game_state, name)
         DynamicSupervisor.terminate_child(__MODULE__, pid)
     end
   end

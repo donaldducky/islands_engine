@@ -29,9 +29,25 @@ defmodule IslandsEngine.Game do
   end
 
   def init(name) do
-    player1 = %{name: name, board: Board.new(), guesses: Guesses.new()}
-    player2 = %{name: nil, board: Board.new(), guesses: Guesses.new()}
-    {:ok, %{player1: player1, player2: player2, rules: %Rules{}}, @timeout}
+    # The book uses an old technique to send a message to itself to keep init from blocking
+    # but it's possible for race conditions.
+    # In OTP 21, we can take advantage of handle_continue.
+    {:ok, %{}, {:continue, {:init_state, name}}}
+  end
+
+  def handle_continue({:init_state, name}, state) do
+    state_data =
+      case :ets.lookup(:game_state, name) do
+        [] ->
+          fresh_state(name)
+
+        [{_key, state}] ->
+          state
+      end
+
+    :ets.insert(:game_state, {name, state_data})
+
+    {:noreply, state_data, @timeout}
   end
 
   def handle_call({:add_player, name}, _from, state_data) do
@@ -117,6 +133,19 @@ defmodule IslandsEngine.Game do
     {:stop, {:shutdown, :timeout}, state_data}
   end
 
+  def terminate({:shutdown, :timeout}, state_data) do
+    :ets.delete(:game_state, state_data.player1.name)
+    :ok
+  end
+
+  def terminate(_reason, _state), do: :ok
+
+  defp fresh_state(name) do
+    player1 = %{name: name, board: Board.new(), guesses: Guesses.new()}
+    player2 = %{name: nil, board: Board.new(), guesses: Guesses.new()}
+    %{player1: player1, player2: player2, rules: %Rules{}}
+  end
+
   defp update_player2_name(state_data, name) do
     put_in(state_data.player2.name, name)
   end
@@ -126,6 +155,7 @@ defmodule IslandsEngine.Game do
   end
 
   defp reply_success(state_data, reply) do
+    :ets.insert(:game_state, {state_data.player1.name, state_data})
     {:reply, reply, state_data}
   end
 
